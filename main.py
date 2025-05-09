@@ -46,7 +46,7 @@ def scrape_vnexpress_news(pages=5):
 
 
 # Lên lịch chạy lúc 6h sáng hằng ngày
-schedule.every().day.at("14:20").do(scrape_vnexpress_news)
+schedule.every().day.at("06:00").do(scrape_vnexpress_news)
 
 if __name__ == "__main__":
     print("Bắt đầu theo dõi lịch...")
