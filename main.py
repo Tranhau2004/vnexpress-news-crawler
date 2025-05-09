@@ -3,11 +3,12 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 import schedule
+import os
 
 BASE_URL = "https://vnexpress.net/kinh-doanh"
 
 
-def scrape_vnexpress_news(pages=5):
+def scrape_vnexpress_news(pages=7):
     articles = []
 
     for page in range(1, pages + 1):
@@ -16,7 +17,8 @@ def scrape_vnexpress_news(pages=5):
         res = requests.get(url)
         soup = BeautifulSoup(res.content, "html.parser")
 
-        for item in soup.select(".titem a.title"):
+        # Lấy danh sách bài viết
+        for item in soup.select("h3.title-news a"):
             link = item.get("href")
             title = item.get_text(strip=True)
             if not link.startswith("http"):
@@ -24,11 +26,14 @@ def scrape_vnexpress_news(pages=5):
             try:
                 art_res = requests.get(link)
                 art_soup = BeautifulSoup(art_res.content, "html.parser")
-                description = art_soup.select_one("meta[name='description']")
-                description = description.get("content") if description else ""
+
+                desc_tag = art_soup.select_one("meta[name='description']")
+                description = desc_tag.get("content") if desc_tag else ""
+
                 image_tag = art_soup.select_one("meta[property='og:image']")
                 image = image_tag.get("content") if image_tag else ""
-                content_tag = art_soup.select_one(".article-content")
+
+                content_tag = art_soup.select_one("article.fck_detail")
                 content = content_tag.get_text(strip=True) if content_tag else ""
 
                 articles.append({
@@ -40,16 +45,17 @@ def scrape_vnexpress_news(pages=5):
             except Exception as e:
                 print(f"Lỗi khi xử lý bài viết: {link} - {e}")
 
+    # Tạo file lưu trữ
+    os.makedirs("data", exist_ok=True)
     df = pd.DataFrame(articles)
     df.to_csv("data/news_data.csv", index=False, encoding="utf-8-sig")
     print("Đã lưu dữ liệu vào data/news_data.csv")
 
 
-# Lên lịch chạy lúc 6h sáng hằng ngày
 schedule.every().day.at("06:00").do(scrape_vnexpress_news)
 
 if __name__ == "__main__":
-    print("Bắt đầu theo dõi lịch...")
+    print("Bắt đầu theo dõi lịch 06:00 mỗi ngày")
     while True:
         schedule.run_pending()
         time.sleep(60)
